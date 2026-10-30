@@ -11,11 +11,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mhss.app.preferences.PrefsConstants
 import com.mhss.app.preferences.domain.model.booleanPreferencesKey
 import com.mhss.app.presentation.integrations.components.ExternalNotesCard
+import com.mhss.app.presentation.integrations.components.KnowledgeIndexSettingsSection
 import com.mhss.app.ui.Res
 import com.mhss.app.ui.components.common.MyBrainAppBar
 import com.mhss.app.ui.integrations
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.mhss.app.data.rag.KnowledgeEmbeddingProvider
 
 @Composable
 fun IntegrationsScreen(
@@ -55,6 +57,26 @@ fun IntegrationsScreen(
                     onFolderSelected = {
                         viewModel.onEvent(IntegrationsEvent.SelectExternalNotesFolder(it))
                     }
+                )
+            }
+            item {
+                val provider by viewModel.getKnowledgeEmbeddingProvider()
+                    .collectAsStateWithLifecycle(KnowledgeEmbeddingProvider.NONE)
+                val stats by viewModel.indexStats
+                val indexing by viewModel.knowledgeIndexing
+                KnowledgeIndexSettingsSection(
+                    provider = provider,
+                    getModel = viewModel::getKnowledgeEmbeddingModel,
+                    stats = stats,
+                    indexing = indexing,
+                    onSelectProvider = {
+                        viewModel.onEvent(IntegrationsEvent.SelectKnowledgeEmbeddingProvider(it))
+                    },
+                    onModelSave = {
+                        viewModel.onEvent(IntegrationsEvent.UpdateKnowledgeEmbeddingModel(it))
+                    },
+                    onReindex = { viewModel.onEvent(IntegrationsEvent.ReindexKnowledge) },
+                    onClear = { viewModel.onEvent(IntegrationsEvent.ClearKnowledgeIndex) }
                 )
             }
         }

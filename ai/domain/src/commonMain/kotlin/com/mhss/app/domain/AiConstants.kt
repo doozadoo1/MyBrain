@@ -12,7 +12,14 @@ val toolsSystemMessage = """
     no need to ask the user to proceed after each tool.
     it's highly encouraged to make multiple tool calls in one response when possible.
     after you no need to make tool calls any more, give the user a short summary of what you did.
+    For any question about the user's own notes, memories, saved links or things they wrote, use retrieveKnowledge first - it searches both by exact words and by meaning.
 """.trimIndent()
+
+/**
+ * Header prepended to retrieval context injected into the system message when
+ * tools are not available (e.g. Gemini Nano or tools disabled).
+ */
+const val knowledgeContextHeader = "Relevant knowledge from the user's notes, diary entries and bookmarks:"
 
 
 val String.summarizeNotePrompt: String

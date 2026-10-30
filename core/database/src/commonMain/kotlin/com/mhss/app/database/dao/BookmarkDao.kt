@@ -44,6 +44,9 @@ interface BookmarkDao {
     @Query("SELECT * FROM bookmarks WHERE id = :id")
     suspend fun getBookmark(id: String): BookmarkEntity?
 
+    @Query("SELECT id, updated_date FROM bookmarks")
+    suspend fun getBookmarkIndexStates(): List<SourceIndexState>
+
     @Query("SELECT * FROM bookmarks WHERE id IN (:ids)")
     suspend fun getBookmarksByIds(ids: List<String>): List<BookmarkEntity>
 

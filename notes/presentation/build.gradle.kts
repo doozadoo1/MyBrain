@@ -28,6 +28,7 @@ kotlin {
                 implementation(projects.notes.domain)
                 implementation(projects.ai.presentation)
                 implementation(projects.ai.domain)
+                implementation(projects.ai.data)
                 implementation(projects.core.datetime)
                 implementation(projects.core.ui)
                 implementation(projects.core.preferences)

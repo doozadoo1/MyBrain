@@ -4,6 +4,7 @@ import ai.koog.agents.core.tools.Tool
 import ai.koog.agents.core.tools.ToolBase
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.serialization.typeToken
+import com.mhss.app.data.rag.KnowledgeIndexer
 import com.mhss.app.data.nowMillis
 import com.mhss.app.domain.model.Note
 import com.mhss.app.domain.use_case.CreateNoteFolderUseCase
@@ -24,7 +25,8 @@ class NoteToolSet(
     private val getNote: GetNoteUseCase,
     private val createFolderUseCase: CreateNoteFolderUseCase,
     private val searchNoteFoldersByName: SearchNoteFoldersByNameUseCase,
-    private val getNoteFolder: GetNoteFolderUseCase
+    private val getNoteFolder: GetNoteFolderUseCase,
+    private val knowledgeIndexer: KnowledgeIndexer
 ) {
     private val searchNotesTool = object : Tool<SearchNotesArgs, SearchNotesResult>(
         argsType = typeToken<SearchNotesArgs>(),
@@ -55,7 +57,9 @@ class NoteToolSet(
                 createdDate = nowMillis(),
                 updatedDate = nowMillis()
             )
-            return NoteIdResult(createdNoteId = upsertNote(note))
+            val createdNoteId = upsertNote(note)
+            runCatching { knowledgeIndexer.indexNote(note) }
+            return NoteIdResult(createdNoteId = createdNoteId)
         }
     }
 
@@ -82,7 +86,11 @@ class NoteToolSet(
                     updatedDate = nowMillis()
                 )
             }
-            return NoteIdsResult(createdNoteIds = upsertNotes(noteModels))
+            return NoteIdsResult(createdNoteIds = upsertNotes(noteModels)).also { result ->
+                runCatching {
+                    noteModels.forEach { knowledgeIndexer.indexNote(it) }
+                }
+            }
         }
     }
 

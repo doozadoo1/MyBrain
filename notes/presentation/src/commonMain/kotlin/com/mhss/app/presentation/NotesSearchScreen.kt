@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.mhss.app.ui.components.common.SemanticSearchItem
 import com.mhss.app.ui.components.notes.NoteSearchContent
 import com.mhss.app.ui.navigation.Screen
 import org.koin.compose.viewmodel.koinViewModel
@@ -20,6 +21,7 @@ fun NotesSearchScreen(
     viewModel: NotesViewModel = koinViewModel()
 ) {
     val state by viewModel.notesUiState.collectAsStateWithLifecycle()
+    val semanticResults by viewModel.semanticResults.collectAsStateWithLifecycle()
     NoteSearchContent(
         modifier = Modifier.padding(WindowInsets.statusBars.asPaddingValues()),
         notes = viewModel.searchResults.collectAsLazyPagingItems(),
@@ -32,6 +34,18 @@ fun NotesSearchScreen(
                 )
             )
         },
-        view = state.noteView
+        view = state.noteView,
+        semanticItems = semanticResults.map { hit ->
+            SemanticSearchItem(
+                id = hit.sourceId,
+                title = hit.title,
+                text = hit.text,
+                date = hit.date,
+                stale = hit.stale
+            )
+        },
+        onSemanticClick = { id ->
+            navController.navigate(Screen.NoteDetailsScreen(noteId = id))
+        }
     )
 }

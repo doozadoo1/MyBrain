@@ -212,6 +212,20 @@
     <string name="lm_studio" translatable="false">LM Studio</string>
     <string name="openai">OpenAI</string>
     <string name="model">Model</string>
+    <string name="knowledge_index">Knowledge index</string>
+    <string name="knowledge_index_description">Search your notes, diary entries and bookmarks by meaning, not just keywords. The assistant uses this automatically, and search screens show semantic matches. Keyword search always works; pick an embedding provider to also match by meaning.</string>
+    <string name="embedding_provider">Embedding provider</string>
+    <string name="embedding_model">Embedding model</string>
+    <string name="reindex_all">Re-index all</string>
+    <string name="indexing">Indexing…</string>
+    <string name="clear_index">Clear index</string>
+    <string name="index_stats">%1$d chunks · %2$d with embeddings</string>
+    <string name="semantic_results">Semantic matches</string>
+    <string name="embedding_provider_none">None (keywords only)</string>
+    <string name="embedding_provider_ollama">Ollama</string>
+    <string name="embedding_provider_openai_compatible">Local server (OpenAI-compatible)</string>
+    <string name="knowledge_index_empty">Index is empty. It fills automatically as you use the app, or re-index now.</string>
+    <string name="note_may_be_outdated">outdated</string>
     <string name="custom_url">Custom URL</string>
     <string name="ai_provider">AI provider</string>
     <string name="custom_base_url">Custom base URL</string>

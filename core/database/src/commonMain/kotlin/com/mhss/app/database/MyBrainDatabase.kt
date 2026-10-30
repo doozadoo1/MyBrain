@@ -10,6 +10,7 @@ import com.mhss.app.database.dao.AlarmDao
 import com.mhss.app.database.dao.AssistantDao
 import com.mhss.app.database.dao.BookmarkDao
 import com.mhss.app.database.dao.DiaryDao
+import com.mhss.app.database.dao.KnowledgeChunkDao
 import com.mhss.app.database.dao.NoteDao
 import com.mhss.app.database.dao.PairedDeviceDao
 import com.mhss.app.database.dao.SyncDao
@@ -20,6 +21,8 @@ import com.mhss.app.database.entity.AssistantThreadEntity
 import com.mhss.app.database.entity.BookmarkEntity
 import com.mhss.app.database.entity.DeletedEntityEntity
 import com.mhss.app.database.entity.DiaryEntryEntity
+import com.mhss.app.database.entity.KnowledgeChunkEntity
+import com.mhss.app.database.entity.KnowledgeChunkFtsEntity
 import com.mhss.app.database.entity.NoteEntity
 import com.mhss.app.database.entity.NoteFolderEntity
 import com.mhss.app.database.entity.PairedDeviceEntity
@@ -38,9 +41,11 @@ import com.mhss.app.database.entity.TaskEntity
         AssistantMessageEntity::class,
         PairedDeviceEntity::class,
         DeletedEntityEntity::class,
-        SyncStateEntity::class
+        SyncStateEntity::class,
+        KnowledgeChunkEntity::class,
+        KnowledgeChunkFtsEntity::class
     ],
-    version = 7
+    version = 8
 )
 
 
@@ -56,6 +61,7 @@ abstract class MyBrainDatabase: RoomDatabase() {
     abstract fun assistantDao(): AssistantDao
     abstract fun pairedDeviceDao(): PairedDeviceDao
     abstract fun syncDao(): SyncDao
+    abstract fun knowledgeChunkDao(): KnowledgeChunkDao
 
     companion object {
         const val DATABASE_NAME = "by_brain_db"

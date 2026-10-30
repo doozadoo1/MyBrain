@@ -30,9 +30,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mhss.app.ui.Res
 import com.mhss.app.ui.navigation.Screen
 import com.mhss.app.ui.search_diary
+import com.mhss.app.ui.components.common.SemanticResultsHeader
+import com.mhss.app.ui.components.common.SemanticSearchItem
+import com.mhss.app.ui.components.common.SemanticSearchItemCard
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -42,6 +46,7 @@ fun DiarySearchScreen(
     viewModel: DiaryViewModel = koinViewModel()
 ) {
     val entries = viewModel.searchResults.collectAsLazyPagingItems()
+    val semanticResults by viewModel.semanticResults.collectAsStateWithLifecycle()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -68,6 +73,29 @@ fun DiarySearchScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(12.dp)
         ) {
+            if (semanticResults.isNotEmpty()) {
+                item(key = "semantic_header") {
+                    SemanticResultsHeader()
+                }
+                items(
+                    semanticResults.size,
+                    key = { i -> "semantic_${semanticResults[i].sourceId}_$i" }
+                ) { index ->
+                    val hit = semanticResults[index]
+                    SemanticSearchItemCard(
+                        item = SemanticSearchItem(
+                            id = hit.sourceId,
+                            title = hit.title,
+                            text = hit.text,
+                            date = hit.date,
+                            stale = hit.stale
+                        ),
+                        onClick = {
+                            navController.navigate(Screen.DiaryDetailScreen(hit.sourceId))
+                        }
+                    )
+                }
+            }
             items(entries.itemCount, key = entries.itemKey { it.id }) { index ->
                 entries[index]?.let { entry ->
                     DiaryEntryItem(

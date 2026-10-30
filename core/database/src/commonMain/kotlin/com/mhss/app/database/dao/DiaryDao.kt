@@ -63,6 +63,9 @@ interface DiaryDao {
     @Query("SELECT * FROM diary WHERE id = :id")
     suspend fun getEntry(id: String): DiaryEntryEntity?
 
+    @Query("SELECT id, updated_date FROM diary")
+    suspend fun getEntryIndexStates(): List<SourceIndexState>
+
     @Query("SELECT * FROM diary WHERE id IN (:ids)")
     suspend fun getEntriesByIds(ids: List<String>): List<DiaryEntryEntity>
 

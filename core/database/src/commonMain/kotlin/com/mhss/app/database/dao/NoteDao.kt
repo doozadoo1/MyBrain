@@ -15,6 +15,7 @@ import androidx.room3.Upsert
 import androidx.room3.paging.PagingSourceDaoReturnTypeConverter
 import com.mhss.app.database.entity.NoteEntity
 import com.mhss.app.database.entity.NoteFolderEntity
+import androidx.room3.ColumnInfo
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -71,6 +72,9 @@ interface NoteDao {
 
     @Query("SELECT id FROM notes WHERE folder_id = :folderId")
     suspend fun getNoteIdsByFolder(folderId: String): List<String>
+
+    @Query("SELECT id, updated_date FROM notes")
+    suspend fun getNoteIndexStates(): List<SourceIndexState>
 
     @Query("SELECT title, SUBSTR(content, 1, 100) AS content, created_date, updated_date, pinned, folder_id, id, sync_seq FROM notes WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%'")
     suspend fun getNotesByTitle(query: String): List<NoteEntity>
@@ -171,3 +175,9 @@ enum class NoteOrder(val column: String) {
     CREATED_DATE("created_date"),
     UPDATED_DATE("updated_date")
 }
+
+data class SourceIndexState(
+    val id: String,
+    @ColumnInfo(name = "updated_date")
+    val updatedDate: Long
+)

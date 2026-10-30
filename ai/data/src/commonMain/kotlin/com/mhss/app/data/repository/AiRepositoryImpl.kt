@@ -27,14 +27,19 @@ import com.mhss.app.data.nowMillis
 import com.mhss.app.data.toAiMessage
 import com.mhss.app.data.toLLModel
 import com.mhss.app.data.toNewAssistantMessage
+import com.mhss.app.data.rag.KnowledgeRetriever
+import com.mhss.app.data.rag.KnowledgeIndexWorker
+import com.mhss.app.data.rag.KnowledgeSettings
 import com.mhss.app.data.tools.BookmarkToolSet
 import com.mhss.app.data.tools.CalendarToolSet
 import com.mhss.app.data.tools.DiaryToolSet
+import com.mhss.app.data.tools.KnowledgeToolSet
 import com.mhss.app.data.tools.NoteToolSet
 import com.mhss.app.data.tools.TaskToolSet
 import com.mhss.app.domain.MAX_CONSECUTIVE_TOOL_CALLS
 import com.mhss.app.domain.gemininano.GeminiNanoService
 import com.mhss.app.domain.gemininano.toGeminiNanoMode
+import com.mhss.app.domain.knowledgeContextHeader
 import com.mhss.app.domain.model.AiMessage
 import com.mhss.app.domain.model.AiRepositoryException
 import com.mhss.app.domain.model.AssistantResult
@@ -72,6 +77,9 @@ class AiRepositoryImpl(
     private val calendarToolSet: CalendarToolSet,
     private val diaryToolSet: DiaryToolSet,
     private val bookmarkToolSet: BookmarkToolSet,
+    private val knowledgeToolSet: KnowledgeToolSet,
+    private val knowledgeRetriever: KnowledgeRetriever,
+    private val knowledgeIndexWorker: KnowledgeIndexWorker,
     private val toolExecutor: AiToolExecutor,
     private val geminiNanoService: GeminiNanoService
 ) : AiRepository {
@@ -81,6 +89,7 @@ class AiRepositoryImpl(
         tools(calendarToolSet.tools)
         tools(diaryToolSet.tools)
         tools(bookmarkToolSet.tools)
+        tools(knowledgeToolSet.tools)
     }
     private val toolDescriptors = toolRegistry.tools.map { it.descriptor }
     private var chatSystemMessage = ""
@@ -93,6 +102,12 @@ class AiRepositoryImpl(
     init {
         applicationScope.launch {
             configureAiClient()
+        }
+        // Keep the knowledge index in sync with notes/diary/bookmarks changes
+        // (UI writes, AI tool writes and sync merges). Runs as long as this
+        // repository instance lives.
+        applicationScope.launch {
+            knowledgeIndexWorker.observeForever()
         }
     }
 
@@ -144,7 +159,7 @@ class AiRepositoryImpl(
             try {
                 val result = geminiNanoService.sendMessage(
                     messages = messages,
-                    systemMessage = chatSystemMessage.ifBlank { buildChatSystemMessage(false) },
+                    systemMessage = awaitInjectedSystemMessage(messages, allowInjection = true),
                     mode = geminiNanoModel.toGeminiNanoMode()
                 )
                 emit(
@@ -171,6 +186,8 @@ class AiRepositoryImpl(
         var currentMessages = messages
         var consecutiveToolCalls = 0
 
+        val systemMessage = awaitInjectedSystemMessage(messages, allowInjection = !toolsEnabled)
+
         try {
             do {
                 if (consecutiveToolCalls >= MAX_CONSECUTIVE_TOOL_CALLS) {
@@ -178,7 +195,7 @@ class AiRepositoryImpl(
                 }
 
                 val result = executor.execute(
-                    prompt = currentMessages.buildChatPrompt(chatSystemMessage),
+                    prompt = currentMessages.buildChatPrompt(systemMessage),
                     model = model,
                     tools = if (toolsEnabled) toolDescriptors else emptyList()
                 )
@@ -225,6 +242,45 @@ class AiRepositoryImpl(
             throw AiRepositoryException(AssistantResult.OtherError(e.message))
         }
     }.flowOn(Dispatchers.IO)
+
+    /**
+     * Builds the system message with retrieved knowledge injected when the
+     * model cannot use tools (e.g. Gemini Nano) or tools are disabled.
+     * With tools enabled the model reaches the same knowledge via the
+     * retrieveKnowledge tool instead.
+     */
+    private suspend fun awaitInjectedSystemMessage(
+        messages: List<AiMessage>,
+        allowInjection: Boolean
+    ): String {
+        val base = chatSystemMessage.ifBlank { buildChatSystemMessage(false) }
+        if (!allowInjection) return base
+        val query = messages.lastOrNull { it is AiMessage.UserMessage }
+            ?.let { it as AiMessage.UserMessage }?.content ?: return base
+        val injection = buildKnowledgeContext(query) ?: return base
+        return "$base\n\n$injection"
+    }
+
+    private suspend fun buildKnowledgeContext(query: String): String? = runCatching {
+        val hits = knowledgeRetriever.retrieve(query, topK = INJECTED_TOP_K)
+        if (hits.isEmpty()) return null
+        val context = buildString {
+            append(knowledgeContextHeader)
+            for (hit in hits) {
+                if (length >= KnowledgeSettings.MAX_INJECTION_LENGTH) break
+                appendLine()
+                append("- [").append(hit.type).append("] ")
+                if (hit.title.isNotBlank()) {
+                    append(hit.title).append(" ")
+                }
+                append('(').append(hit.date).append("): ")
+                append(hit.text)
+                if (hit.stale) append(" (content may be outdated)")
+            }
+        }
+        context.take(KnowledgeSettings.MAX_INJECTION_LENGTH) +
+            "\nUse this knowledge when answering the user. Say so if the answer relies on it."
+    }.getOrNull()
 
     private suspend fun configureAiClient() {
         val aiProvider = getPreferenceUseCase(
@@ -294,6 +350,8 @@ class AiRepositoryImpl(
 private val koogHttpClientFactory by lazy {
     KtorKoogHttpClient.Factory(baseClient = HttpClient(CIO))
 }
+
+private const val INJECTED_TOP_K = 4
 
 private fun AiProvider.getExecutor(key: String, customUrl: String, llModel: LLModel): PromptExecutor {
     val client = when (this) {

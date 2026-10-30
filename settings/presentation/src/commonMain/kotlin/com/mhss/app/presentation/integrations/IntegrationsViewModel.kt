@@ -2,8 +2,14 @@ package com.mhss.app.presentation.integrations
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import com.mhss.app.data.noteMarkdownModule
 import com.mhss.app.data.noteRoomModule
+import com.mhss.app.data.rag.KnowledgeEmbeddingProvider
+import com.mhss.app.data.rag.KnowledgeIndexer
+import com.mhss.app.data.rag.KnowledgeSettings
+import com.mhss.app.data.rag.toKnowledgeEmbeddingProvider
 import com.mhss.app.domain.gemininano.GeminiNanoService
 import com.mhss.app.domain.gemininano.GeminiNanoStatus
 import com.mhss.app.domain.gemininano.toGeminiNanoMode
@@ -23,6 +29,7 @@ import com.mhss.app.preferences.domain.use_case.GetPreferenceUseCase
 import com.mhss.app.preferences.domain.use_case.SavePreferenceUseCase
 import com.mhss.app.storage.FileUtilsRepository
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -37,7 +44,8 @@ class IntegrationsViewModel(
     private val getPreference: GetPreferenceUseCase,
     private val updateExternalNotesFolder: UpdateExternalNotesFolderUseCase,
     private val fileUtilsRepository: FileUtilsRepository,
-    private val geminiNanoService: GeminiNanoService
+    private val geminiNanoService: GeminiNanoService,
+    private val knowledgeIndexer: KnowledgeIndexer
 ) : ViewModel() {
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -45,11 +53,31 @@ class IntegrationsViewModel(
     }
     val geminiNanoStatus: Flow<GeminiNanoStatus> = geminiNanoService.status
 
+    private val _indexStats = mutableStateOf<KnowledgeIndexer.ReindexStats?>(null)
+    val indexStats: State<KnowledgeIndexer.ReindexStats?> = _indexStats
+
+    private val _knowledgeIndexing = mutableStateOf(false)
+    val knowledgeIndexing: State<Boolean> = _knowledgeIndexing
+
     init {
         viewModelScope.launch(exceptionHandler) {
             refreshGeminiNanoIfEnabled()
         }
+        viewModelScope.launch(exceptionHandler) {
+            _indexStats.value = knowledgeIndexer.stats()
+        }
     }
+
+    fun getKnowledgeEmbeddingProvider(): Flow<KnowledgeEmbeddingProvider> =
+        getPreference(
+            IntKey(PrefsConstants.KNOWLEDGE_EMBEDDING_PROVIDER_KEY),
+            KnowledgeEmbeddingProvider.NONE.id
+        ).map { it.toKnowledgeEmbeddingProvider() }
+
+    fun getKnowledgeEmbeddingModel(): Flow<String> = getPreference(
+        stringPreferencesKey(PrefsConstants.KNOWLEDGE_EMBEDDING_MODEL_KEY),
+        KnowledgeSettings.DEFAULT_EMBEDDING_MODEL
+    )
 
     fun <T> getSettings(key: PrefsKey<T>, defaultValue: T): Flow<T> {
         return getPreference(key, defaultValue)
@@ -131,6 +159,35 @@ class IntegrationsViewModel(
                     BooleanKey(PrefsConstants.AI_TOOLS_ENABLED_KEY),
                     event.enabled
                 )
+            }
+
+            is IntegrationsEvent.SelectKnowledgeEmbeddingProvider -> {
+                saveSettings(
+                    IntKey(PrefsConstants.KNOWLEDGE_EMBEDDING_PROVIDER_KEY),
+                    event.provider.id
+                )
+            }
+
+            is IntegrationsEvent.UpdateKnowledgeEmbeddingModel -> {
+                saveSettings(
+                    stringPreferencesKey(PrefsConstants.KNOWLEDGE_EMBEDDING_MODEL_KEY),
+                    event.model
+                )
+            }
+
+            IntegrationsEvent.ReindexKnowledge -> {
+                viewModelScope.launch(exceptionHandler) {
+                    _knowledgeIndexing.value = true
+                    _indexStats.value = knowledgeIndexer.reindexAll()
+                    _knowledgeIndexing.value = false
+                }
+            }
+
+            IntegrationsEvent.ClearKnowledgeIndex -> {
+                viewModelScope.launch(exceptionHandler) {
+                    knowledgeIndexer.clearAll()
+                    _indexStats.value = null
+                }
             }
 
             IntegrationsEvent.DownloadGeminiNanoModel -> {

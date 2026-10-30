@@ -15,6 +15,7 @@ import com.mhss.app.database.migrations.MIGRATION_3_4
 import com.mhss.app.database.migrations.MIGRATION_4_5
 import com.mhss.app.database.migrations.MIGRATION_5_6
 import com.mhss.app.database.migrations.MIGRATION_6_7
+import com.mhss.app.database.migrations.MIGRATION_7_8
 import com.mhss.app.database.sync.LocalChangeObserver
 import kotlinx.coroutines.Dispatchers
 import org.koin.core.annotation.Module
@@ -36,7 +37,8 @@ class DatabaseModule {
                 MIGRATION_3_4,
                 MIGRATION_4_5,
                 MIGRATION_5_6,
-                MIGRATION_6_7
+                MIGRATION_6_7,
+                MIGRATION_7_8
             )
             .addCallback(object : RoomDatabase.Callback() {
                 override suspend fun onCreate(connection: SQLiteConnection) {
@@ -71,6 +73,9 @@ class DatabaseModule {
 
     @Single
     fun syncDao(database: MyBrainDatabase) = database.syncDao()
+
+    @Single
+    fun knowledgeChunkDao(database: MyBrainDatabase) = database.knowledgeChunkDao()
 
     @Single
     fun localChangeObserver(): LocalChangeObserver = LocalChangeObserver()

@@ -1,5 +1,6 @@
 package com.mhss.app.presentation.integrations
 
+import com.mhss.app.data.rag.KnowledgeEmbeddingProvider
 import com.mhss.app.preferences.domain.model.AiProvider
 
 sealed class IntegrationsEvent {
@@ -13,4 +14,8 @@ sealed class IntegrationsEvent {
     data object DownloadGeminiNanoModel : IntegrationsEvent()
     data class SetExternalNotesEnabled(val enabled: Boolean) : IntegrationsEvent()
     data class SelectExternalNotesFolder(val folderUri: String) : IntegrationsEvent()
+    data class SelectKnowledgeEmbeddingProvider(val provider: KnowledgeEmbeddingProvider) : IntegrationsEvent()
+    data class UpdateKnowledgeEmbeddingModel(val model: String) : IntegrationsEvent()
+    data object ReindexKnowledge : IntegrationsEvent()
+    data object ClearKnowledgeIndex : IntegrationsEvent()
 }

@@ -341,3 +341,28 @@ private fun dropOldTasksInBatches(connection: SQLiteConnection) {
 
     connection.execSQL("DROP TABLE tasks")
 }
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        // Knowledge index for RAG (notes + diary + bookmarks chunks with optional embeddings)
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `knowledge_chunks` (" +
+                "`id` TEXT NOT NULL, " +
+                "`source_type` TEXT NOT NULL, " +
+                "`source_id` TEXT NOT NULL, " +
+                "`chunk_index` INTEGER NOT NULL, " +
+                "`title` TEXT NOT NULL, " +
+                "`text` TEXT NOT NULL, " +
+                "`source_updated_date` INTEGER NOT NULL, " +
+                "`embedding` BLOB, " +
+                "PRIMARY KEY(`id`))"
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_knowledge_chunks_source_id` ON `knowledge_chunks` (`source_id`)"
+        )
+        connection.execSQL(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS `knowledge_chunks_fts` USING FTS4(" +
+                "`id` TEXT NOT NULL, `title` TEXT NOT NULL, `text` TEXT NOT NULL)"
+        )
+    }
+}

@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.cachedIn
+import com.mhss.app.data.rag.KnowledgeRetriever
 import com.mhss.app.domain.use_case.GetAllEntriesUseCase
 import com.mhss.app.domain.use_case.GetDiaryForChartUseCase
 import com.mhss.app.domain.use_case.SearchEntriesUseCase
@@ -21,7 +22,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -32,6 +35,8 @@ import org.koin.core.annotation.KoinViewModel
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
+private const val SEMANTIC_TOP_K = 8
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @KoinViewModel
 class DiaryViewModel(
@@ -40,6 +45,7 @@ class DiaryViewModel(
     private val getPreference: GetPreferenceUseCase,
     private val savePreference: SavePreferenceUseCase,
     private val getEntriesForChart: GetDiaryForChartUseCase,
+    private val knowledgeRetriever: KnowledgeRetriever,
 ) : ViewModel() {
 
     var uiState by mutableStateOf(UiState())
@@ -54,6 +60,13 @@ class DiaryViewModel(
         searchEntries.paged(it)
     }.cachedIn(viewModelScope)
 
+    /**
+     * RAG hits for the current search query, shown above the keyword results.
+     */
+    private val _semanticResults =
+        MutableStateFlow<List<KnowledgeRetriever.KnowledgeHit>>(emptyList())
+    val semanticResults = _semanticResults.asStateFlow()
+
     private val chartRange = MutableStateFlow<Boolean?>(null)
     val chartEntries = chartRange.flatMapLatest { monthly ->
         if (monthly == null) flowOf(emptyList()) else {
@@ -66,6 +79,19 @@ class DiaryViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
+        viewModelScope.launch {
+            searchQuery
+                .flatMapLatest {
+                    flow {
+                        delay(400.milliseconds)
+                        emit(knowledgeRetriever.retrieve(it, topK = SEMANTIC_TOP_K))
+                    }
+                }
+                .catch { emit(emptyList()) }
+                .collect { results ->
+                    _semanticResults.value = results
+                }
+        }
         viewModelScope.launch {
             getPreference(
                 intPreferencesKey(PrefsConstants.DIARY_ORDER_KEY),

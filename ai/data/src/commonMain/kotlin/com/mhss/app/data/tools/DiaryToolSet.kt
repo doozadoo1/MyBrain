@@ -3,6 +3,7 @@ package com.mhss.app.data.tools
 import ai.koog.agents.core.tools.Tool
 import ai.koog.agents.core.tools.ToolBase
 import ai.koog.serialization.typeToken
+import com.mhss.app.data.rag.KnowledgeIndexer
 import com.mhss.app.data.nowMillis
 import com.mhss.app.domain.model.DiaryEntry
 import com.mhss.app.domain.model.Mood
@@ -18,7 +19,8 @@ import kotlin.uuid.Uuid
 class DiaryToolSet(
     private val addDiaryEntry: AddDiaryEntryUseCase,
     private val searchEntries: SearchEntriesUseCase,
-    private val getDiaryEntry: GetDiaryEntryUseCase
+    private val getDiaryEntry: GetDiaryEntryUseCase,
+    private val knowledgeIndexer: KnowledgeIndexer
 ) {
     private val createDiaryEntryTool = object : Tool<CreateDiaryEntryArgs, DiaryEntryIdResult>(
         argsType = typeToken<CreateDiaryEntryArgs>(),
@@ -37,6 +39,7 @@ class DiaryToolSet(
                 id = id
             )
             addDiaryEntry(entry)
+            runCatching { knowledgeIndexer.indexDiaryEntry(entry) }
             return DiaryEntryIdResult(createdDiaryEntryId = id)
         }
     }

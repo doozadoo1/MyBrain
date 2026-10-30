@@ -3,6 +3,7 @@ package com.mhss.app.data.tools
 import ai.koog.agents.core.tools.Tool
 import ai.koog.agents.core.tools.ToolBase
 import ai.koog.serialization.typeToken
+import com.mhss.app.data.rag.KnowledgeIndexer
 import com.mhss.app.data.nowMillis
 import com.mhss.app.domain.model.Bookmark
 import com.mhss.app.domain.use_case.AddBookmarkUseCase
@@ -15,7 +16,8 @@ import kotlin.uuid.Uuid
 @Factory
 class BookmarkToolSet(
     private val addBookmark: AddBookmarkUseCase,
-    private val searchBookmarksUseCase: SearchBookmarksUseCase
+    private val searchBookmarksUseCase: SearchBookmarksUseCase,
+    private val knowledgeIndexer: KnowledgeIndexer
 ) {
     private val createBookmarkTool = object : Tool<CreateBookmarkArgs, BookmarkIdResult>(
         argsType = typeToken<CreateBookmarkArgs>(),
@@ -34,6 +36,7 @@ class BookmarkToolSet(
                 id = id
             )
             addBookmark(bookmark)
+            runCatching { knowledgeIndexer.indexBookmark(bookmark) }
             return BookmarkIdResult(createdBookmarkId = id)
         }
     }

@@ -27,6 +27,7 @@ kotlin {
             dependencies {
                 implementation(projects.settings.domain)
                 implementation(projects.ai.domain)
+                implementation(projects.ai.data)
                 implementation(projects.notes.domain)
                 implementation(projects.notes.data)
 

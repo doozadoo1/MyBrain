@@ -19,6 +19,8 @@ import com.mhss.app.data.tools.CalendarEventIdsResult
 import com.mhss.app.data.tools.GetEventsResult
 import com.mhss.app.data.tools.NoteIdResult
 import com.mhss.app.data.tools.NoteIdsResult
+import com.mhss.app.data.tools.RETRIEVE_KNOWLEDGE_TOOL
+import com.mhss.app.data.tools.RetrieveKnowledgeResult
 import com.mhss.app.data.tools.SEARCH_EVENTS_BY_NAME_WITHIN_RANGE_TOOL
 import com.mhss.app.data.tools.SEARCH_NOTES_TOOL
 import com.mhss.app.data.tools.SEARCH_TASKS_TOOL
@@ -166,6 +168,17 @@ class AiToolExecutor(
                     .orEmpty()
                     .take(MAX_TOOL_PREVIEWS)
                 if (events.isNotEmpty()) ToolCallResultObject.CalendarEvents(events) else null
+            }
+
+            RETRIEVE_KNOWLEDGE_TOOL -> {
+                // Show note hits with the existing note preview cards; diary and
+                // bookmark hits have no preview object and stay text-only.
+                val result = json.decodeFromString<RetrieveKnowledgeResult>(resultJson)
+                val notes = result.hits
+                    .filter { it.type == "Note" }
+                    .take(MAX_TOOL_PREVIEWS)
+                    .mapNotNull { getNote(it.id) }
+                if (notes.isNotEmpty()) ToolCallResultObject.Notes(notes) else null
             }
 
             else -> null

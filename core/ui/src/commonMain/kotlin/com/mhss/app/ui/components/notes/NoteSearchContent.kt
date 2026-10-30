@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,6 +32,9 @@ import com.mhss.app.ui.ItemView
 import com.mhss.app.ui.Res
 import com.mhss.app.ui.components.PagingLoadState
 import com.mhss.app.ui.components.PagingPlaceholder
+import com.mhss.app.ui.components.common.SemanticResultsHeader
+import com.mhss.app.ui.components.common.SemanticSearchItem
+import com.mhss.app.ui.components.common.SemanticSearchItemCard
 import com.mhss.app.ui.search_notes
 import org.jetbrains.compose.resources.stringResource
 
@@ -41,6 +45,8 @@ fun NoteSearchContent(
     onQueryChange: (String) -> Unit,
     onNoteClick: (Note) -> Unit,
     view: ItemView,
+    semanticItems: List<SemanticSearchItem> = emptyList(),
+    onSemanticClick: (String) -> Unit = {}
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
@@ -69,6 +75,18 @@ fun NoteSearchContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(12.dp)
             ) {
+                if (semanticItems.isNotEmpty()) {
+                    item(key = "semantic_header") {
+                        SemanticResultsHeader()
+                    }
+                    items(semanticItems.size, key = { i -> "semantic_${semanticItems[i].id}_$i" }) { index ->
+                        val item = semanticItems[index]
+                        SemanticSearchItemCard(
+                            item = item,
+                            onClick = onSemanticClick
+                        )
+                    }
+                }
                 items(notes.itemCount, key = notes.itemKey { it.id }) { index ->
                     notes[index]?.let { note ->
                         NoteCard(
@@ -86,6 +104,22 @@ fun NoteSearchContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(12.dp)
             ) {
+                if (semanticItems.isNotEmpty()) {
+                    item(key = "semantic_header", span = StaggeredGridItemSpan.FullLine) {
+                        SemanticResultsHeader()
+                    }
+                    items(
+                        semanticItems.size,
+                        key = { i -> "semantic_${semanticItems[i].id}_$i" },
+                        span = StaggeredGridItemSpan.FullLine
+                    ) { index ->
+                        SemanticSearchItemCard(
+                            item = semanticItems[index],
+                            onClick = onSemanticClick,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
+                }
                 items(notes.itemCount, key = notes.itemKey { it.id }) { index ->
                     notes[index]?.let { note ->
                         key(note.id) {

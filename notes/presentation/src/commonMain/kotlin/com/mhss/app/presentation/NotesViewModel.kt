@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.cachedIn
 import com.mhss.app.domain.model.NoteException
+import com.mhss.app.data.rag.KnowledgeRetriever
 import com.mhss.app.domain.use_case.CreateNoteFolderUseCase
 import com.mhss.app.domain.use_case.GetAllNoteFoldersUseCase
 import com.mhss.app.domain.use_case.GetAllNotesUseCase
@@ -29,13 +30,17 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 import kotlin.time.Duration.Companion.milliseconds
+
+private const val SEMANTIC_TOP_K = 8
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @KoinViewModel
@@ -46,6 +51,7 @@ class NotesViewModel(
     private val savePreference: SavePreferenceUseCase,
     private val getAllFolders: GetAllNoteFoldersUseCase,
     private val createFolder: CreateNoteFolderUseCase,
+    private val knowledgeRetriever: KnowledgeRetriever,
 ) : ViewModel() {
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -70,7 +76,27 @@ class NotesViewModel(
         searchNotes.paged(it)
     }.cachedIn(viewModelScope)
 
+    /**
+     * RAG hits for the current search query, shown as a "semantic matches"
+     * section above the keyword results in the search screen.
+     */
+    private val _semanticResults = MutableStateFlow<List<KnowledgeRetriever.KnowledgeHit>>(emptyList())
+    val semanticResults = _semanticResults.asStateFlow()
+
     init {
+        viewModelScope.launch {
+            searchQuery
+                .flatMapLatest {
+                    flow {
+                        delay(400.milliseconds)
+                        emit(knowledgeRetriever.retrieve(it, topK = SEMANTIC_TOP_K))
+                    }
+                }
+                .catch { emit(emptyList()) }
+                .collect { results ->
+                    _semanticResults.value = results
+                }
+        }
         viewModelScope.launch {
             launch {
                 combine(
