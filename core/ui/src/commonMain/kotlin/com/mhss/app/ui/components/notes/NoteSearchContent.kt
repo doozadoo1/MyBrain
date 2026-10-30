@@ -111,7 +111,7 @@ fun NoteSearchContent(
                     items(
                         semanticItems.size,
                         key = { i -> "semantic_${semanticItems[i].id}_$i" },
-                        span = StaggeredGridItemSpan.FullLine
+                        span = { StaggeredGridItemSpan.FullLine }
                     ) { index ->
                         SemanticSearchItemCard(
                             item = semanticItems[index],

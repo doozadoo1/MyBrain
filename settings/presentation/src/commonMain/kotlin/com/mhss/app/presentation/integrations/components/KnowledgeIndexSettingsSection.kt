@@ -42,6 +42,9 @@ import com.mhss.app.ui.Res
 import com.mhss.app.ui.clear_index
 import com.mhss.app.ui.embedding_model
 import com.mhss.app.ui.embedding_provider
+import com.mhss.app.ui.embedding_provider_none
+import com.mhss.app.ui.embedding_provider_ollama
+import com.mhss.app.ui.embedding_provider_openai_compatible
 import com.mhss.app.ui.index_stats
 import com.mhss.app.ui.indexing
 import com.mhss.app.ui.knowledge_index

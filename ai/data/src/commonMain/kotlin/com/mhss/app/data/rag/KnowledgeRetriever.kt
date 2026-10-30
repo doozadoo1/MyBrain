@@ -58,7 +58,7 @@ class KnowledgeRetriever(
         buildFtsMatchQuery(trimmed)?.let { matchQuery ->
             knowledgeChunkDao.searchFts(matchQuery, SEARCH_CANDIDATES)
                 .forEachIndexed { index, row ->
-                    fused.merge(row.id, rrfScore(index), ::plus)
+                    fused.merge(row.id, rrfScore(index)) { acc, value -> acc + value }
                 }
         }
 
@@ -68,7 +68,7 @@ class KnowledgeRetriever(
                 ?.takeIf { it.isNotEmpty() }
                 ?.let { queryVector ->
                     rankByCosine(queryVector).forEach { (id, score) ->
-                        fused.merge(id, score, ::plus)
+                        fused.merge(id, score) { acc, value -> acc + value }
                     }
                 }
         }
