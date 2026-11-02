@@ -24,6 +24,7 @@ kotlin {
                 implementation(projects.tasks.domain)
                 implementation(projects.diary.domain)
                 implementation(projects.bookmarks.domain)
+                implementation(projects.core.database)
 
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.datetime)
@@ -45,8 +46,6 @@ kotlin {
 
         androidMain {
             dependencies {
-                implementation(projects.core.database)
-
                 implementation(libs.koin.android.workmanager)
 
                 implementation(libs.androidx.work.runtime.ktx)

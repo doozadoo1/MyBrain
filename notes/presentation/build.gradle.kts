@@ -39,7 +39,7 @@ kotlin {
                 implementation(libs.androidx.paging.compose)
 
                 implementation(libs.androidx.lifecycle.viewmodel)
-                implementation(libs.androidx.lifecycle.viewmodel.ktx)
+                
             }
         }
         androidMain {

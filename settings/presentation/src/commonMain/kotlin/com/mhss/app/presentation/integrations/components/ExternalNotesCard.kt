@@ -31,6 +31,8 @@ import com.mhss.app.ui.external_notes_warning
 import com.mhss.app.ui.select_source_folder_for_notes
 import com.mhss.app.ui.source_folder
 import com.mhss.app.ui.theme.MyBrainTheme
+import com.mohamedrejeb.calf.core.LocalPlatformContext
+import com.mohamedrejeb.calf.io.getPath
 import com.mohamedrejeb.calf.picker.FilePickerFileType
 import com.mohamedrejeb.calf.picker.FilePickerSelectionMode
 import com.mohamedrejeb.calf.picker.rememberFilePickerLauncher
@@ -100,12 +102,13 @@ private fun SourceFolderCard(
     onFolderSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val kmpContext = LocalPlatformContext.current
     val chooseDirectoryLauncher = rememberFilePickerLauncher(
         FilePickerFileType.Folder,
         selectionMode = FilePickerSelectionMode.Single
     ) { files ->
-        files.firstOrNull()?.let { file ->
-            onFolderSelected(file.uri.toString())
+        files.firstOrNull()?.getPath(kmpContext)?.let { path ->
+            onFolderSelected(path)
         }
     }
     Column(

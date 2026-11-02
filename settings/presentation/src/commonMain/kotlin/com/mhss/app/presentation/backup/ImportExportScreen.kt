@@ -137,8 +137,8 @@ fun ImportExportScreen(
         FilePickerFileType.Folder,
         selectionMode = FilePickerSelectionMode.Single
     ) { files ->
-        files.firstOrNull()?.let { file ->
-            viewModel.onEvent(BackupEvent.SelectAutoBackupFolder(folderUri = file.uri.toString()))
+        files.firstOrNull()?.getPath(kmpContext)?.let { path ->
+            viewModel.onEvent(BackupEvent.SelectAutoBackupFolder(folderUri = path))
         }
     }
 

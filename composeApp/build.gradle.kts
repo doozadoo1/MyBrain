@@ -58,11 +58,11 @@ kotlin {
                 implementation(projects.core.preferences)
                 implementation(projects.core.storage)
                 implementation(projects.core.datetime)
+                implementation(projects.core.widget)
 
                 implementation(project.dependencies.platform(libs.compose.bom))
                 implementation(libs.bundles.compose)
                 implementation(libs.androidx.lifecycle.viewmodel)
-                implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
                 implementation(project.dependencies.platform(libs.koin.bom))
                 implementation(libs.bundles.koin)
@@ -78,6 +78,7 @@ kotlin {
 
                 implementation(libs.androidx.appcompat)
                 implementation(libs.androidx.core.ktx)
+                implementation(libs.androidx.lifecycle.viewmodel.ktx)
                 implementation(libs.androidx.lifecycle.runtime.ktx)
                 implementation(libs.androidx.activity.compose)
                 implementation(libs.androidx.glance.appwidget)
@@ -93,6 +94,21 @@ kotlin {
                 implementation(libs.zxing.core)
             }
         }
+
+        jvmMain {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                // Dispatchers.Main for lifecycle-compose (collectAsStateWithLifecycle) — AWT EDT backed.
+                implementation(libs.kotlinx.coroutines.swing)
+                implementation(libs.zxing.core)
+            }
+        }
+    }
+}
+
+compose.desktop {
+    application {
+        mainClass = "com.mhss.app.mybrain.DesktopMainKt"
     }
 }
 

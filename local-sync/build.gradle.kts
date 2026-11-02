@@ -65,6 +65,11 @@ kotlin {
             implementation(libs.ktor.okhttp)
         }
 
+        jvmMain.dependencies {
+            implementation(libs.zstd.jni)
+            implementation(libs.ktor.cio)
+        }
+
         androidHostTest.dependencies {
             implementation(libs.androidx.work.testing)
             implementation(libs.androidx.test.core)

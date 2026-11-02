@@ -39,7 +39,6 @@ kotlin {
                 implementation(libs.bundles.compose)
 
                 implementation(libs.androidx.lifecycle.viewmodel)
-                implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
                 implementation(libs.kotlinx.serialization.json)
             }
